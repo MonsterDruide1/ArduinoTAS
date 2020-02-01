@@ -1,4 +1,5 @@
 // LUFA Library Configuration Header File. Used to configure LUFA's compile time options, as an alternative to the compile-time defines.
+// clang-format off
 #ifndef _LUFA_CONFIG_H_
 #define _LUFA_CONFIG_H_
 	#if (ARCH == ARCH_AVR8)
@@ -79,3 +80,4 @@
 		#error Unsupported architecture for this LUFA configuration file.
 	#endif
 #endif
+// clang-format on
