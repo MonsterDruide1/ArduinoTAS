@@ -1,0 +1,9 @@
+<RCC>
+    <qresource prefix="/images">
+        <file>switch.png</file>
+        <file>btn_ZR.png</file>
+        <file>btn_ZL.png</file>
+        <file>switch_nostick.png</file>
+        <file>stick.png</file>
+    </qresource>
+</RCC>

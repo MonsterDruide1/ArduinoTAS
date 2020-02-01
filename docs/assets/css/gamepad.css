@@ -1,0 +1,73 @@
+.controlCanvas {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+#gamepadStatusContainer, .center-text {
+    text-align: center;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+.min-padding {
+    margin-top: 5px;
+    margin-bottom: 5px;
+}
+.inactive {
+    color: lightgrey;
+}
+.error {
+    color: red;
+}
+.active {
+    color: green;
+}
+.connecting {
+    color: orange;
+}
+.no-margin {
+    margin-bottom: 0;
+    margin-top: 0;
+}
+#help {
+    text-align: center;
+}
+#version {
+    text-align: center;
+    font-size: 0.8em;
+}
+[v-cloak] {
+    display: none;
+}
+.hidden {
+    display: none;
+}
+.stats {
+    float: right;
+}
+.warning {
+    color: red;
+}
+.debug-watch {
+    text-align: center;
+    width: 40%;
+    margin: 0 25%;
+}
+.debug-watch > div {
+    text-align: left;
+}
+.debug-watch label {
+    display: inline-block;
+    width: 150px;
+    background-color: gray;
+    padding: 1pt 4pt;
+    border: 1pt solid transparent;
+    margin-right: 2pt;
+}
+.debug-watch span {
+    display: inline-block;
+    width: 150px;
+    padding: 1pt 4pt;
+    border: 1pt solid gray;
+    margin-left: 2pt;
+}
