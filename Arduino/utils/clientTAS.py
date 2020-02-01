@@ -8,6 +8,8 @@ import math
 from pynput.keyboard import Key,Listener
 from pynput import keyboard
 
+PORT = "COM4"
+
 STATE_OUT_OF_SYNC   = 0
 STATE_SYNC_START    = 1
 STATE_SYNC_1        = 2
@@ -480,7 +482,7 @@ def main():
         for key in current:
             if(key == keyboard.KeyCode(char='l')):
                 command += BTN_A
-            if(key == Key.space):
+            if(key == keyboard.KeyCode(char='k')):
                 command += BTN_B
             if(key == keyboard.KeyCode(char='j')):
                 command += BTN_X
@@ -567,6 +569,6 @@ def main():
 # ser = serial.Serial(port=args.port, baudrate=31250,timeout=1)
 # ser = serial.Serial(port=args.port, baudrate=40000,timeout=1)
 # ser = serial.Serial(port=args.port, baudrate=62500,timeout=1)
-ser = serial.Serial(port="COM4", baudrate=19200,timeout=1)
+ser = serial.Serial(PORT, baudrate=19200,timeout=1)
 main()
 ser.close
