@@ -1,3 +1,0 @@
----
-layout: stream_overlay
----
