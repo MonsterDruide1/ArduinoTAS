@@ -39,7 +39,7 @@ Now you should be ready to rock. Open a terminal window in the `Arduino`-subdire
 
 #### Flashing it onto the Arduino Uno
 
-You need the program called `Flip` on your Windows PC to flash the compiled `Joystick.hex` file onto your Arduino. You can download it (here)[https://www.microchip.com/developmenttools/ProductDetails/flip].
+You need the program called `Flip` on your Windows PC to flash the compiled `Joystick.hex` file onto your Arduino. You can download it [here](https://www.microchip.com/developmenttools/ProductDetails/flip).
 
 Before flashing, you always need to disconnect your TX and RX-Pins.
 
@@ -47,7 +47,7 @@ First you need to put your Arduino in DFU-Mode while it's connected to your PC. 
 
 [![Short the pins in the red circle](http://1.bp.blogspot.com/-jMM85F4r6ww/T8u-74eiNkI/AAAAAAAAGZ0/EWa0TdA26A4/s1600/DFU_mode_pins.png)](https://forum.arduino.cc/index.php?topic=380103.0)
 
-If it's the first time for your PC to be connected to an Arduino in DFU-Mode, you need to follow (these)[https://youtu.be/fSXZMVdO5Sg?t=322] instructions to connect the Arduino to FLIP.
+If it's the first time for your PC to be connected to an Arduino in DFU-Mode, you need to follow [these](https://youtu.be/fSXZMVdO5Sg?t=322) instructions to connect the Arduino to FLIP.
 
 In Flip, first select `ATmega16u2` in Device -> Select and press OK. After that, go into File -> Load HEX File and search for `Joystick.hex` you compiled earlier. Then press on the USB-cable in the top menu and select USB, then press Open. Now you are ready to flash!
 
