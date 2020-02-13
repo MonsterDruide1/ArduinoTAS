@@ -3,12 +3,11 @@ import serial
 import select
 import struct
 import sys
+import io
 import time
 import math
 from pynput.keyboard import Key,Listener
 from pynput import keyboard
-
-PORT = "COM4"
 
 STATE_OUT_OF_SYNC   = 0
 STATE_SYNC_START    = 1
@@ -91,6 +90,7 @@ COMMAND_NOP        = 0x00
 COMMAND_SYNC_1     = 0x33
 COMMAND_SYNC_2     = 0xCC
 COMMAND_SYNC_START = 0xFF
+COMMAND_SYNC_DONE  = 0x77
 
 # Responses from MCU
 RESP_USB_ACK       = 0x90
@@ -198,6 +198,8 @@ def send_packet(packet=[0x00,0x00,0x08,0x80,0x80,0x80,0x80,0x00], debug=False):
 
         # Wait for USB ACK or UPDATE NACK
         byte_in = read_byte()
+        while(byte_in==0x38):
+            byte_in = read_byte();
         commandSuccess = (byte_in == RESP_USB_ACK)
     else:
         commandSuccess = True
@@ -367,15 +369,32 @@ def force_sync():
     wait_for_data()
     byte_in = read_byte_latest()
 
+    print(byte_in)
+    while(byte_in==0x00) or (byte_in==0x88):
+        print("INTERRUPTED1")
+        write_bytes([0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF])
+        byte_in = read_byte()
+    print(byte_in)
+
     # Begin sync...
     inSync = False
     if byte_in == RESP_SYNC_START:
         write_byte(COMMAND_SYNC_1)
         byte_in = read_byte()
+        while(byte_in==0x55) or (byte_in==0x88) or (byte_in==0xFF):
+            print("INTERRUPTED2")
+            byte_in = read_byte()
+        print(byte_in);
+        print("START")
         if byte_in == RESP_SYNC_1:
             write_byte(COMMAND_SYNC_2)
             byte_in = read_byte()
+            while(byte_in==0x55):
+                print("INTERRUPTED3")
+                byte_in = read_byte()
+            print(byte_in)
             if byte_in == RESP_SYNC_OK:
+                write_byte(COMMAND_SYNC_DONE)
                 inSync = True
     return inSync
 
@@ -384,11 +403,13 @@ def sync():
     inSync = False
 
     # Try sending a packet
-    inSync = send_packet()
+    #inSync = send_packet()
     if not inSync:
+        print("forceSync")
         # Not in sync: force resync and send a packet
         inSync = force_sync()
         if inSync:
+            print("forceSyncDONE")
             inSync = send_packet()
     return inSync
 
@@ -400,44 +421,46 @@ def pressKeys(buttons):
     for key in simpleKeys:
         if(key == "KEY_A"):
             command += BTN_A
-        if(key == "KEY_B"):
+        elif(key == "KEY_B"):
             command += BTN_B
-        if(key == "KEY_X"):
+        elif(key == "KEY_X"):
             command += BTN_X
-        if(key == "KEY_Y"):
+        elif(key == "KEY_Y"):
             command += BTN_Y
-        if(key == "KEY_PLUS"):
+        elif(key == "KEY_PLUS"):
             command += BTN_PLUS
-        if(key == "KEY_MINUS"):
+        elif(key == "KEY_MINUS"):
             command += BTN_MINUS
-        if(key == "KEY_HOME"):
+        elif(key == "KEY_HOME"):
             command += BTN_HOME
-        if(key == "KEY_CAPTURE"):
+        elif(key == "KEY_CAPTURE"):
             command += BTN_CAPTURE
-        if(key == "KEY_ZL"):
+        elif(key == "KEY_ZL"):
             command += BTN_ZL
-        if(key == "KEY_ZR"):
+        elif(key == "KEY_ZR"):
             command += BTN_ZR
-        if(key == "KEY_L"):
+        elif(key == "KEY_L"):
             command += BTN_L
-        if(key == "KEY_R"):
+        elif(key == "KEY_R"):
             command += BTN_R
-        if(key == "KEY_LSTICK"):
+        elif(key == "KEY_LSTICK"):
             command += BTN_LCLICK
-        if(key == "KEY_RSTICK"):
+        elif(key == "KEY_RSTICK"):
             command += BTN_RCLICK
-        if(key == "KEY_DLEFT"):
+        elif(key == "KEY_DLEFT"):
             command += DPAD_L
-        if(key == "KEY_DRIGHT"):
+        elif(key == "KEY_DRIGHT"):
             command += DPAD_R
-        if(key == "KEY_DUP"):
+        elif(key == "KEY_DUP"):
             command += DPAD_U
-        if(key == "KEY_DDOWN"):
+        elif(key == "KEY_DDOWN"):
             command += DPAD_D
 
-        if(key == "KEY_SYNC"):
+        elif(key == "KEY_SYNC"):
             command += BTN_L
             command += BTN_R
+        elif(key != "NONE") and (key != "") and (key != " "):
+            print("Unknown key:",key)
     return command
 
 def toValidJoy(value):
@@ -445,6 +468,12 @@ def toValidJoy(value):
 
 def toValidJox(value):
     return int(int(value)/256)+128
+
+def revertJoy(value):
+    return (128-value)*256
+
+def revertJox(value):
+    return (value-128)*256
 
 
 
@@ -473,8 +502,12 @@ def main():
 
     print("READY")
     notDone = True
+    frameNo = 0
+    record = False
     while notDone:
+        start = time.perf_counter()
         command = NO_INPUT
+        keys = ""
         lx = 128
         ly = 128
         rx = 128
@@ -482,40 +515,63 @@ def main():
         for key in current:
             if(key == keyboard.KeyCode(char='l')):
                 command += BTN_A
-            if(key == keyboard.KeyCode(char='k')):
+                keys+=";KEY_A"
+            if(key == Key.space):
                 command += BTN_B
+                keys+=";KEY_B"
             if(key == keyboard.KeyCode(char='j')):
                 command += BTN_X
+                keys+=";KEY_X"
             if(key == keyboard.KeyCode(char='i')):
                 command += BTN_Y
+                keys+=";KEY_Y"
             if(key == keyboard.KeyCode(char='3')):
                 command += BTN_PLUS
+                keys+=";KEY_PLUS"
             if(key == keyboard.KeyCode(char='1')):
                 command += BTN_MINUS
+                keys+=";KEY_MINUS"
             if(key == keyboard.KeyCode(char='h')):
                 command += BTN_HOME
+                keys+=";KEY_HOME"
             if(key == keyboard.KeyCode(char='c')):
                 command += BTN_CAPTURE
+                keys+=";KEY_CAPTURE"
             if(key == keyboard.KeyCode(char='q')):
                 command += BTN_ZL
+                keys+=";KEY_ZL"
             if(key == keyboard.KeyCode(char='u')):
                 command += BTN_ZR
+                keys+=";KEY_ZR"
             if(key == keyboard.KeyCode(char='e')):
                 command += BTN_L
+                keys+=";KEY_L"
             if(key == keyboard.KeyCode(char='o')):
                 command += BTN_R
+                keys+=";KEY_R"
             if(key == keyboard.KeyCode(char='x')):
                 command += BTN_LCLICK
+                keys+=";KEY_LSTICK"
             if(key == keyboard.KeyCode(char=',')):
                 command += BTN_RCLICK
+                keys+=";KEY_RSTICK"
             if(key == Key.left):
                 command += DPAD_L
+                keys+=";KEY_DLEFT"
             if(key == Key.right):
                 command += DPAD_R
+                keys+=";KEY_DRIGHT"
             if(key == Key.up):
                 command += DPAD_U
+                keys+=";KEY_DUP"
             if(key == Key.down):
                 command += DPAD_D
+                keys+=";KEY_DDOWN"
+
+                
+            if(key == keyboard.KeyCode(char='r')):
+                record=True
+                f=open("newScript0.txt","a+")
                 
             if Key.esc in current:
                 notDone=False
@@ -535,20 +591,33 @@ def main():
                 lx+=127
             
         send_cmd(command,lx,ly,rx,ry)
-        p_wait(1/30)
+        if(record):
+            frameNo+=1
+            if(keys == ""):
+                keys = "NONE"
+            else:
+                keys = keys[1:]
+            if(keys == "NONE") and (lx+ly+rx+ry == 128*4):
+                print("EMPTY")
+            else:
+                f.write("%d %s %d;%d %d;%d\n" % (frameNo,keys,revertJox(lx),revertJoy(ly),revertJox(rx),revertJoy(ry)))
+                
             
+        p_waitNew(1/60,start)
 
+    if 'f' in locals():
+        f.close()
     frameNo = -3
-    frameLength = 1/60
     f = open("script0.txt","r")
     f1 = f.readlines();
     for line in f1:
-        startTime = time.perf_counter()
         parts = line.split(" ")
         while frameNo != int(parts[0]):
             startTime = time.perf_counter()
             send_cmd(pressKeys(""),128,128,128,128)
-            p_waitNew(frameLength,startTime)
+            byte_in = read_byte();
+            while(byte_in!=0x38):
+                byte_in = read_byte();
             frameNo+=1
 
         print(frameNo)
@@ -558,17 +627,34 @@ def main():
         send_cmd(com,toValidJox(left[0]),toValidJoy(left[1]),toValidJox(right[0]),toValidJoy(right[1]))
     
         frameNo+=1
-        p_waitNew(frameLength,startTime)
+        byte_in = read_byte();
+        while(byte_in!=0x38):
+            byte_in = read_byte(); #   1/120
 
     send_cmd(pressKeys(""),128,128,128,128)
     # testbench()
     # testbench_packet_speed(1000)
 
 
+def countVSyncs():
+    if not sync():
+        print('Could not sync!')
+        sys.exit()
+    start = time.perf_counter();
+    counter=0
+    while(True):
+        if(time.perf_counter() >= start+10):
+            start=time.perf_counter();
+            print(counter);
+            counter=0
+        byte_in = read_byte()
+        if(byte_in==0x38):
+            counter+=1
+    
 
 # ser = serial.Serial(port=args.port, baudrate=31250,timeout=1)
 # ser = serial.Serial(port=args.port, baudrate=40000,timeout=1)
 # ser = serial.Serial(port=args.port, baudrate=62500,timeout=1)
-ser = serial.Serial(PORT, baudrate=19200,timeout=1)
+ser = serial.Serial(port="COM4", baudrate=19200,timeout=1)
 main()
 ser.close

@@ -20,11 +20,13 @@ these buttons for our use.
 
 #include "Joystick.h"
 #include <stdio.h>
+//#include <avr/io.h>
 
 typedef enum {
     SYNCED,
     SYNC_START,
     SYNC_1,
+    SYNC_2,
     OUT_OF_SYNC
 } State_t;
 
@@ -49,10 +51,14 @@ ISR(USART1_RX_vect) {
         else state = OUT_OF_SYNC;
     } else if (state == SYNC_1) {
         if (b == COMMAND_SYNC_2) {
-            state = SYNCED;
+            state = SYNC_2;
             send_byte(RESP_SYNC_OK);
         }
         else state = OUT_OF_SYNC;
+    } else if(state == SYNC_2) {
+        if(b == COMMAND_SYNC_DONE){
+          state = SYNCED;
+        }
     } else if (state == SYNCED) {
 
         if (usbInput.received_bytes < 8) {
@@ -96,6 +102,18 @@ ISR(USART1_RX_vect) {
     }
 }
 
+void WaitForVSync(){
+  char X = (PINB & (1 << PB3));
+  while(X!=0){
+    X = (PINB & (1 << PB3));
+  }
+  while(X==0){
+    X = (PINB & (1 << PB3));
+  }
+  
+  send_byte(0x38);
+}
+
 // Main entry point.
 int main(void) {
     // We also need to initialize the initial input reports.
@@ -116,6 +134,9 @@ int main(void) {
     // Once that's done, we'll enter an infinite loop.
     for (;;)
     {
+        if(state == SYNCED){
+          WaitForVSync();
+        }
         // We need to run our task to process and deliver data for our IN and OUT endpoints.
         HID_Task();
         // We also need to run the main USB management task.
@@ -135,6 +156,9 @@ void SetupHardware(void) {
 
     // The USB stack should be initialized last.
     USB_Init();
+    
+    //Init the VSYNC-Pin
+    DDRD &= ~(1 << PB3);
 }
 
 // Fired to indicate that the device is enumerating.
