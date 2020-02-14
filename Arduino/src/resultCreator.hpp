@@ -5,6 +5,7 @@
 #include <cmath>
 #include <cstdint>
 #include <cstring>
+#include <algorithm>
 
 #include "switchConstants.hpp"
 
@@ -64,12 +65,15 @@ public:
 	uint16_t right_stick_x;
 	uint16_t right_stick_y;
 
-	int16_t accel_x;
-	int16_t accel_y;
-	int16_t accel_z;
-	int16_t gyro_1;
-	int16_t gyro_2;
-	int16_t gyro_3;
+	// This data is mostly all the same
+	int16_t accs[9];
+	int16_t gyrs[9];
+	
+	// Coefficents for the sensors
+	float accCoeffs[3];
+	float gyrCoeffs[3];
+	float accOffset[3];
+	float gyrOffset[3];
 
 	void fillFullButtonReport(int8_t* bArr, uint8_t startByte) {
 		int i2 = startByte;
@@ -142,11 +146,80 @@ public:
 		bArr[i2 + 5] = (int8_t)((round4 >> 4) & 255);
 		//}
 	}
+	
+	void calcSensorCoefficents() {
+		/*
+		// This stuff is hidden in the eeprom, which I don't have yet
+        	this.accCoeffs = new float[3];
+        	this.gyrCoeffs = new float[3];
+        	byte[] read = this.eeprom.read(32806, 26);
+        	this.accOffset = new short[3];
+        	int[] iArr = new int[3];
+        	this.gyrOffset = new short[3];
+        	int[] iArr2 = new int[3];
+        	if (ByteUtils.toShort(read, 0) != -19807) {
+            		read = this.eeprom.read(24608, 26);
+        	}
+        	for (int i = 0; i < 3; i++) {
+            		int i2 = i * 2;
+            		this.accOffset[i] = ByteUtils.toShort(read, i2 + 2);
+            		iArr[i] = Short.toUnsignedInt(ByteUtils.toShort(read, i2 + 8));
+            		this.accCoeffs[i] = (float) (((double) (iArr[i] - this.accOffset[i])) / 39.226600646972656d);
+            		this.gyrOffset[i] = ByteUtils.toShort(read, i2 + 14);
+            		iArr2[i] = Short.toUnsignedInt(ByteUtils.toShort(read, i2 + 20));
+            		this.gyrCoeffs[i] = (float) (((double) (iArr2[i] - this.gyrOffset[i])) / 16.33628179866384d);
+        	}
+		*/
+    	}
 
 	void fillSensorData(int8_t* bArr, uint8_t startByte) {
 		uint8_t i = startByte;
+		
+		// https://github.com/MonsterDruide1/SwitchConDroid-TAS/blob/master/JoyConDroid1064Remade/app/src/main/java/com/rdapps/gamepad/nintendo_switch/SwitchController.java#L1025
+		const float proconConstant = 1;
+		const bool isProcon = true;
+		
+		uint8_t index = startByte;
 		for(int i = 0; i < 3; i++) {
-			// Add acc data then gyro data
+			uint8_t start = i * 3;
+			
+			// Deal with accelerometer
+			float acc1 = accs[start] * proconConstant;
+			float acc2 = accs[start + 1];
+			float acc3 = accs[start + 2] * proconConstant;
+			int16_t clamp1 = std::clamp((isProcon ? -acc3 : acc2) * accCoeffs[0], -32768.0f, 32767.0f);
+                	int16_t clamp2 = std::clamp(-acc1 * accCoeffs[1], -32768.0f, 32767.0f);
+			if (!isProcon) {
+                    		acc2 = acc3;
+               		}
+			int16_t clamp3 = std::clamp(acc2 * accCoeffs[2], -32768.0f, 32767.0f);
+			
+			// Add accelerometer data
+			bArr[index++] = (int8_t) (clamp1 & 255);
+			bArr[index++] = (int8_t) ((clamp1 >> 8) & 255);
+			bArr[index++] = (int8_t) (clamp2 & 255);
+			bArr[index++] = (int8_t) ((clamp2 >> 8) & 255);
+			bArr[index++] = (int8_t) (clamp3 & 255);
+			bArr[index++] = (int8_t) ((clamp3 >> 8) & 255);
+			
+			// Now, gyro data
+			float gyro1 = gyrs[i8] * proconConstant;
+                	float gyro2 = gyrs[i9];
+                	float gyro3 = gyrs[i10] * proconConstant;
+			int16_t clamp4 = std::clamp((isProcon ? -gyro3 : gyro2) * gyrCoeffs[0]) + gyrOffset[0], -32768.0f, 32767.0f);
+                	int16_t clamp5 = std::clamp(-gyro1 * gyrCoeffs[1]) + gyrOffset[1], -32768.0f, 32767.0f);
+                	if (!isProcon) {
+                    		gyro2 = gyro3;
+                	}
+                	int16_t clamp6 = std::clamp(gyro2 * gyrCoeffs[2] + gyrOffset[2], -32768.0f, 32767.0f);
+			
+			// Add gyrometer data
+                	bArr[index++] = (int8_t) (clamp4 & 255);
+                	bArr[index++] = (int8_t) ((clamp4 >> 8) & 255);
+                	bArr[index++] = (int8_t) (clamp5 & 255);
+                	bArr[index++] = (int8_t) ((clamp5 >> 8) & 255);
+                	bArr[index++] = (int8_t) (clamp6 & 255);
+                	bArr[index++] = (int8_t) ((clamp6 >> 8) & 255);
 		}
 	}
 
