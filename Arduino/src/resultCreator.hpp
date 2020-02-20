@@ -8,6 +8,9 @@
 #include <cstdio>
 #include <cstring>
 
+// Arduino specific header
+#include <WiFi.h>
+
 #include "switchConstants.hpp"
 
 class ControllerData {
@@ -181,124 +184,161 @@ public:
 			int i2 = i * 2;
 
 			accOffset[i] = getShort(sensorEepromData, i * 2 + 2);
-			accCoeffs[i] = (float)(((double)(getShort(sensorEepromData, i * 2 + 8) - accOffset[i])) / 39.226600646972656);
+			accCoeffs[i] = (float)(((double)((uint16_t)getShort(sensorEepromData, i * 2 + 8) - accOffset[i])) / 39.226600646972656);
 
 			gyrOffset[i] = getShort(sensorEepromData, i * 2 + 14);
-			gyrCoeffs[i] = (float)(((double)(getShort(sensorEepromData, i * 2 + 20) - gyrOffset[i])) / 16.33628179866384);
+			gyrCoeffs[i] = (float)(((double)((uint16_t)getShort(sensorEepromData, i * 2 + 20) - gyrOffset[i])) / 16.33628179866384);
 		}
 	}
 
-	/*
-private void handleRumbleAndSubcommand(byte[] bArr) {
-		byte b = bArr[0];
-		Arrays.copyOfRange(bArr, 1, 9);
-		byte b2 = bArr[9];
-		byte[] bArr2 = new byte[48];
-		Arrays.fill(bArr2, (byte)0);
-		bArr2[0] = getTimeByte();
-		bArr2[1] = getBatteryReport();
-		this.buttonStates.fillFullButtonReport(bArr2, 2);
-		bArr2[11] = getVibratorData();
-		if (b2 == 1) {
-			bArr2[12] = -127;
-			bArr2[13] = b2;
-			Log.d(TAG, "BT Pairing ");
-		} else if (b2 == 2) {
-			bArr2[12] = -126;
-			bArr2[13] = b2;
-			Log.d(TAG, "Device Info ");
-			fillDeviceInformation(bArr2, 14);
-		} else if (b2 == 8) {
-			bArr2[12] = Byte.MIN_VALUE;
-			bArr2[13] = b2;
-			byte b3 = bArr[10];
-			String str = TAG;
-			StringBuilder sb = new StringBuilder();
-			sb.append("Set shipment input: ");
-			sb.append(ByteUtils.encodeHexString(b3));
-			Log.d(str, sb.toString());
-		} else if (b2 == 16) {
-			int i = 0;
-			for (int i2 = 0; i2 < 4; i2++) {
-				i |= (bArr[i2 + 10] & 255) << (i2 * 8);
-			}
-			String str2 = TAG;
-			StringBuilder sb2 = new StringBuilder();
-			sb2.append("EEPROM Location: ");
-			sb2.append(Integer.toHexString(i));
-			Log.d(str2, sb2.toString());
-			byte b4 = (byte)(bArr[14] & 255);
-			String str3 = TAG;
-			StringBuilder sb3 = new StringBuilder();
-			sb3.append("READ Length: ");
-			sb3.append(b4);
-			Log.d(str3, sb3.toString());
-			bArr2[12] = -112;
-			bArr2[13] = b2;
-			byte[] read = this.eeprom.read(i, b4);
-			System.arraycopy(bArr, 10, bArr2, 14, 5);
-			System.arraycopy(read, 0, bArr2, 19, read.length);
-		} else if (b2 == 3) {
-			byte b5 = bArr[10];
-			String str4 = TAG;
-			StringBuilder sb4 = new StringBuilder();
-			sb4.append("Input Report Mode: ");
-			sb4.append(ByteUtils.encodeHexString(b5));
-			Log.d(str4, sb4.toString());
-			bArr2[12] = Byte.MIN_VALUE;
-			bArr2[13] = b2;
-		} else if (b2 == 4) {
-			bArr2[12] = Byte.MIN_VALUE;
-			bArr2[13] = b2;
-			int i3 = (bArr[0] | (bArr[1] << 8)) * 10;
-			String str5 = TAG;
-			StringBuilder sb5 = new StringBuilder();
-			sb5.append("Elapse Time: ");
-			sb5.append(i3);
-			Log.d(str5, sb5.toString());
-			startFullReport();
-		} else if (b2 == 64) {
-			bArr2[12] = Byte.MIN_VALUE;
-			bArr2[13] = b2;
-			byte b6 = bArr[10];
-			String str6 = TAG;
-			StringBuilder sb6 = new StringBuilder();
-			sb6.append("Enable 6-Axis sensor: ");
-			sb6.append(ByteUtils.encodeHexString(b6));
-			Log.d(str6, sb6.toString());
-		} else if (b2 == 72) {
-			bArr2[12] = Byte.MIN_VALUE;
-			bArr2[13] = b2;
-			byte b7 = bArr[10];
-			String str7 = TAG;
-			StringBuilder sb7 = new StringBuilder();
-			sb7.append("Enable vibration: ");
-			sb7.append(ByteUtils.encodeHexString(b7));
-			Log.d(str7, sb7.toString());
-		} else if (b2 == 48) {
-			bArr2[12] = Byte.MIN_VALUE;
-			bArr2[13] = b2;
-			byte b8 = bArr[10];
-			String str8 = TAG;
-			StringBuilder sb8 = new StringBuilder();
-			sb8.append("player lights: ");
-			sb8.append(ByteUtils.encodeHexString(b8));
-			Log.d(str8, sb8.toString());
-		} else {
-			bArr2[12] = Byte.MIN_VALUE;
-			bArr2[13] = b2;
-			bArr2[14] = 3;
-			String str9 = TAG;
-			StringBuilder sb9 = new StringBuilder();
-			sb9.append("Unknown Subcommand : ");
-			sb9.append(ByteUtils.encodeHexString(b2));
-			Log.d(str9, sb9.toString());
-		}
-		sendReport(33, bArr2);
+	int8_t getTimeByte() {
+		return 0;
 	}
-	*/
+
+	int8_t getBatteryReport() {
+		return -112 | 1;
+	}
+
+	int8_t getVibratorData() {
+		return -80;
+	}
+
+	// Don't know why I'm supporting this, but oh well
+	void fillButtonReport(int8_t* bArr, uint8_t startByte) {
+		bArr[startByte] = 0;
+		bArr[startByte] = (int8_t)(bArr[startByte] | (buttons[ButtonType::DOWN] == 0 ? (int8_t)0 : SwitchConstants::DOWN_BIT));
+		bArr[startByte] = (int8_t)(bArr[startByte] | (buttons[ButtonType::RIGHT] == 0 ? (int8_t)0 : SwitchConstants::RIGHT_BIT));
+		bArr[startByte] = (int8_t)(bArr[startByte] | (buttons[ButtonType::LEFT] == 0 ? (int8_t)0 : SwitchConstants::LEFT_BIT));
+		bArr[startByte] = (int8_t)(bArr[startByte] | (buttons[ButtonType::UP] == 0 ? (int8_t)0 : SwitchConstants::UP_BIT));
+		bArr[startByte] = (int8_t)(bArr[startByte] | (buttons[ButtonType::LSL] == 0 ? (int8_t)0 : SwitchConstants::FULL_SR_BIT));
+		bArr[startByte] = (int8_t)(bArr[startByte] | (buttons[ButtonType::LSR] == 0 ? (int8_t)0 : SwitchConstants::SR_BIT));
+
+		bArr[startByte + 1] = 0;
+		bArr[startByte + 1] = (int8_t)(bArr[startByte + 1] | (buttons[ButtonType::MINUS] == 0 ? (int8_t)0 : SwitchConstants::MINUS_BIT));
+		bArr[startByte + 1] = (int8_t)(bArr[startByte + 1] | (buttons[ButtonType::PLUS] == 0 ? (int8_t)0 : SwitchConstants::PLUS_BIT));
+		bArr[startByte + 1] = (int8_t)(bArr[startByte + 1] | (buttons[ButtonType::LJOY] == 0 ? (int8_t)0 : SwitchConstants::LEFT_STICK_BIT));
+		bArr[startByte + 1] = (int8_t)(bArr[startByte + 1] | (buttons[ButtonType::RJOY] == 0 ? (int8_t)0 : SwitchConstants::RIGHT_STICK_BIT));
+		int8_t b2           = bArr[startByte + 1];
+		int8_t b;
+		if(buttons[ButtonType::HOME] == 0) {
+			b = 0;
+		}
+		bArr[startByte + 1] = (int8_t)(b | b2);
+		bArr[startByte + 1] = (int8_t)(bArr[startByte + 1] | (buttons[ButtonType::CAPTURE] == 0 ? (int8_t)0 : SwitchConstants::CAPTURE_BIT));
+		bArr[startByte + 1] = (int8_t)(bArr[startByte + 1] | (buttons[ButtonType::L] == 0 ? (int8_t)0 : SwitchConstants::L_R_BIT));
+		bArr[startByte + 1] = (int8_t)(bArr[startByte + 1] | (buttons[ButtonType::ZL] == 0 ? (int8_t)0 : SwitchConstants::ZL_ZR_BIT));
+		if(left_stick_x > 0) {
+			if(left_stick_y > 0) {
+				bArr[startByte + 2] = 3;
+			} else if(left_stick_y < 0) {
+				bArr[startByte + 2] = 1;
+			} else {
+				bArr[startByte + 2] = 2;
+			}
+		} else if(left_stick_x < 0) {
+			if(left_stick_y > 0) {
+				bArr[startByte + 2] = 5;
+			} else if(left_stick_y < 0) {
+				bArr[startByte + 2] = 7;
+			} else {
+				bArr[startByte + 2] = 6;
+			}
+		} else if(left_stick_y > 0) {
+			bArr[startByte + 2] = 4;
+		} else if(left_stick_y < 0) {
+			bArr[startByte + 2] = 0;
+		} else {
+			bArr[startByte + 2] = 8;
+		}
+		for(int i3 = 3; i3 < 11; i3++) {
+			bArr[startByte + i3] = (int8_t)(i3 % 2 == 0 ? 128 : 0);
+		}
+	}
+
+	void handleRumbleAndSubcommand(int8_t* bArr) {
+		int8_t b = bArr[0];
+		// Don't think this is used
+		// Arrays.copyOfRange(bArr, 1, 9);
+		int8_t subcommand = bArr[9];
+		int8_t report[48] = { 0 };
+		report[0]         = getTimeByte();
+		report[1]         = getBatteryReport();
+		fillFullButtonReport(report, 2);
+		report[11] = getVibratorData();
+		if(subcommand == 1) {
+			// Bluetooth pairing
+			report[12] = -127;
+			report[13] = subcommand;
+		} else if(subcommand == 2) {
+			// Device info
+			report[12] = -126;
+			report[13] = subcommand;
+			fillDeviceInformation(report, 14);
+		} else if(subcommand == 8) {
+			// Set shipment input to b3
+			report[12] = -128; // Should be a constant
+			report[13] = subcommand;
+			int8_t b3  = report[10];
+		} else if(subcommand == 16) {
+			// Read EEPROM
+			int i = 0;
+			for(int i2 = 0; i2 < 4; i2++) {
+				i |= (report[i2 + 10] & 255) << (i2 * 8);
+			}
+
+			int8_t b4 = (int8_t)(report[14] & 255);
+
+			// i = index, b4 = length
+
+			int8_t readEepromData[b4];
+
+			fseek(eeprom, i, SEEK_SET);
+			fread(&readEepromData, sizeof(readEepromData), 1, eeprom);
+
+			report[12] = -112;
+			report[13] = subcommand;
+
+			// https://stackoverflow.com/a/1163943/9329945
+			memcpy(&report[14], &bArr[10], 5);
+			memcpy(&report[19], &readEepromData, sizeof(readEepromData));
+		} else if(subcommand == 3) {
+			// Input Report Mode is b5
+			int8_t b5  = bArr[10];
+			report[12] = -128;
+			report[13] = subcommand;
+		} else if(subcommand == 4) {
+			// Elapsed time is i3 and start sending full report
+			report[12] = -128;
+			report[13] = subcommand;
+			int i3     = (bArr[0] | (bArr[1] << 8)) * 10;
+			// Start sending full report
+			// startFullReport();
+		} else if(subcommand == 64) {
+			// Enable 6-Axis sensor is b6, should always be true
+			report[12] = -128;
+			report[13] = subcommand;
+			int8_t b6  = bArr[10];
+		} else if(subcommand == 72) {
+			// Enable vibration is b7
+			report[12] = -128;
+			report[13] = subcommand;
+			int8_t b7  = bArr[10];
+		} else if(subcommand == 48) {
+			// player lights is b8
+			report[12] = -128;
+			report[13] = subcommand;
+			int8_t b8  = bArr[10];
+		} else {
+			// Unknown Subcommand
+			report[12] = -128;
+			report[13] = subcommand;
+			report[14] = 3;
+		}
+		// sendReport(33, report);
+	}
 
 	void fillSensorData(int8_t* bArr, uint8_t startByte) {
+		// Heck, I had to break my brain translating this
 		uint8_t i = startByte;
 
 		// https://github.com/MonsterDruide1/SwitchConDroid-TAS/blob/master/JoyConDroid1064Remade/app/src/main/java/com/rdapps/gamepad/nintendo_switch/SwitchController.java#L1025
@@ -349,18 +389,59 @@ private void handleRumbleAndSubcommand(byte[] bArr) {
 		}
 	}
 
+	void fillDeviceInformation(int8_t* bArr, uint8_t startByte) {
+		bArr[startByte]     = 3;
+		bArr[startByte + 1] = SwitchConstants::REQUEST_VIBRATION;
+		// This describes the type bytes, the second element
+		/*
+		LEFT_JOYCON("Joy-Con (L)", (byte)1, R.raw.left_joycon_eeprom),
+		RIGHT_JOYCON("Joy-Con (R)", (byte)2, R.raw.right_joycon_eeprom),
+		PROCONTROLLER("Pro Controller", (byte)3, R.raw.pro_controller_eeprom);
+		*/
+		bArr[startByte + 2] = 3;
+		bArr[startByte + 3] = 2;
+		// Arduino specific
+		// You need WiFi.begin(ssid); somewhere too
+		uint8_t mac[6];
+		WiFi.macAddress(mac);
+		for(int i = 0; i < 6; i++) {
+			// Go backwards
+			bArr[startByte + 4 + i] = mac[(6 - i) - 1];
+		}
+		bArr[startByte + 10] = 1;
+		bArr[startByte + 11] = 1;
+	}
+
 	void sendFullReport() {
 		// https://github.com/MonsterDruide1/SwitchConDroid-TAS/blob/c687e653b6bd47f7661aedf2de27310163f56e41/JoyConDroid1064Remade/app/src/main/java/com/rdapps/gamepad/nintendo_switch/SwitchController.java#L1227
 		// Initialize array to zero
 		// NOTE: This all follows this: https://github.com/dekuNukem/Nintendo_Switch_Reverse_Engineering/blob/master/bluetooth_hid_notes.md#standard-input-report-format
 		int8_t report[48] = { 0 };
 		// getTimeByte() is nanosecond precision
-		report[0] = 0;        // Time byte
-		report[1] = -112 | 1; // I dunno, hardcoded, battery report
+		report[0] = getTimeByte();      // Time byte
+		report[1] = getBatteryReport(); // I dunno, hardcoded, battery report
 		// This is 9 bytes
 		fillFullButtonReport(report, 2);
-		report[11] = -80; // Hardcoded
+		report[11] = getVibratorData(); // Hardcoded, vibrator data
 		fillSensorData(report, 12);
 		// The resulting data is 48 bytes long
+		// Send report here, don't know how to do that yet
+		// sendReport(48, report);
+	}
+
+	// Smaller button report specifically not supported, sendShortButton() in source
+
+	void sendHandShake() {
+		/*
+		if (!this.fullReportEnabled && isConnected()) {
+			this.buttonStates.setLeft_stick_x(-1);
+			this.buttonStates.setLeft_stick_y(1);
+			sendShortButton();
+			this.buttonStates.setLeft_stick_x(0);
+			this.buttonStates.setLeft_stick_y(0);
+			sendShortButton();
+			startHandShake();
+		}
+		*/
 	}
 };

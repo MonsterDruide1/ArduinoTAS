@@ -1,5 +1,6 @@
 {
 	"files.associations": {
+		"*.json": "jsonc",
 		"optional": "cpp",
 		"istream": "cpp",
 		"ostream": "cpp",
@@ -9,6 +10,7 @@
 		"functional": "cpp",
 		"tuple": "cpp",
 		"type_traits": "cpp",
-		"utility": "cpp"
+		"utility": "cpp",
+		"cstddef": "cpp"
 	}
 }
