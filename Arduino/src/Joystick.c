@@ -20,8 +20,15 @@ these buttons for our use.
 
 #include "Joystick.h"
 #include <stdio.h>
+//#include <avr/io.h>
 
-typedef enum { SYNCED, SYNC_START, SYNC_1, OUT_OF_SYNC } State_t;
+typedef enum {
+    SYNCED,
+    SYNC_START,
+    SYNC_1,
+    SYNC_2,
+    OUT_OF_SYNC
+} State_t;
 
 typedef struct {
 	uint8_t input[8];
@@ -35,86 +42,106 @@ USB_JoystickReport_Input_t defaultBuf;
 State_t state = OUT_OF_SYNC;
 
 ISR(USART1_RX_vect) {
-	uint8_t b = recv_byte();
-	if(state == SYNC_START) {
-		if(b == COMMAND_SYNC_1) {
-			state = SYNC_1;
-			send_byte(RESP_SYNC_1);
-		} else
-			state = OUT_OF_SYNC;
-	} else if(state == SYNC_1) {
-		if(b == COMMAND_SYNC_2) {
-			state = SYNCED;
-			send_byte(RESP_SYNC_OK);
-		} else
-			state = OUT_OF_SYNC;
-	} else if(state == SYNCED) {
+    uint8_t b = recv_byte();
+    if (state == SYNC_START) {
+        if (b == COMMAND_SYNC_1) {
+            state = SYNC_1;
+            send_byte(RESP_SYNC_1);
+        }
+        else state = OUT_OF_SYNC;
+    } else if (state == SYNC_1) {
+        if (b == COMMAND_SYNC_2) {
+            state = SYNC_2;
+            send_byte(RESP_SYNC_OK);
+        }
+        else state = OUT_OF_SYNC;
+    } else if(state == SYNC_2) {
+        if(b == COMMAND_SYNC_DONE){
+          state = SYNCED;
+        }
+    } else if (state == SYNCED) {
 
-		if(usbInput.received_bytes < 8) {
-			// Still filling up the buffer
-			usbInput.input[usbInput.received_bytes++] = b;
-			usbInput.crc8_ccitt                       = _crc8_ccitt_update(usbInput.crc8_ccitt, b);
+        if (usbInput.received_bytes < 8) {
+            // Still filling up the buffer
+            usbInput.input[usbInput.received_bytes++] = b;
+            usbInput.crc8_ccitt = _crc8_ccitt_update(usbInput.crc8_ccitt, b);
 
-		} else {
-			if(usbInput.crc8_ccitt != b) {
-				if(b == COMMAND_SYNC_START) {
-					// Start sync
-					state = SYNC_START;
-					send_byte(RESP_SYNC_START);
-				} else {
-					// Mismatched CRC
-					send_byte(RESP_UPDATE_NACK);
-					PRINT_DEBUG("Packet specified CRC 0x%02x but calculated CRC was 0x%02x\n", b, usbInput.crc8_ccitt);
-					PRINT_DEBUG("Packet data: %02x %02x %02x %02x %02x %02x %02x %02x %02x\n", usbInput.input[0], usbInput.input[1], usbInput.input[2], usbInput.input[3], usbInput.input[4], usbInput.input[5], usbInput.input[6], usbInput.input[7], b);
-				}
+        } else {
+            if (usbInput.crc8_ccitt != b) {
+                if (b == COMMAND_SYNC_START) {
+                    // Start sync
+                    state = SYNC_START;
+                    send_byte(RESP_SYNC_START);
+                } else {
+                    // Mismatched CRC
+                    send_byte(RESP_UPDATE_NACK);
+                    PRINT_DEBUG("Packet specified CRC 0x%02x but calculated CRC was 0x%02x\n", b, usbInput.crc8_ccitt);
+                    PRINT_DEBUG("Packet data: %02x %02x %02x %02x %02x %02x %02x %02x %02x\n", usbInput.input[0], usbInput.input[1], usbInput.input[2], usbInput.input[3], usbInput.input[4], usbInput.input[5], usbInput.input[6], usbInput.input[7], b);
+                }
+                
+            } else {
+                // Everything is ok
+                buffer.Button = (usbInput.input[0] << 8) | usbInput.input[1];
+                buffer.HAT = usbInput.input[2];
+                buffer.LX = usbInput.input[3];
+                buffer.LY = usbInput.input[4];
+                buffer.RX = usbInput.input[5];
+                buffer.RY = usbInput.input[6];
+                buffer.VendorSpec = usbInput.input[7];
+                // send_byte(RESP_UPDATE_ACK);
+            }
+            usbInput.received_bytes = 0;
+            usbInput.crc8_ccitt = 0;
+        }
+    }
+    if (state == OUT_OF_SYNC) {
+        if (b == COMMAND_SYNC_START) {
+            state = SYNC_START;
+            send_byte(RESP_SYNC_START);
+        }
+    }
+}
 
-			} else {
-				// Everything is ok
-				buffer.Button     = (usbInput.input[0] << 8) | usbInput.input[1];
-				buffer.HAT        = usbInput.input[2];
-				buffer.LX         = usbInput.input[3];
-				buffer.LY         = usbInput.input[4];
-				buffer.RX         = usbInput.input[5];
-				buffer.RY         = usbInput.input[6];
-				buffer.VendorSpec = usbInput.input[7];
-				// send_byte(RESP_UPDATE_ACK);
-			}
-			usbInput.received_bytes = 0;
-			usbInput.crc8_ccitt     = 0;
-		}
-	}
-	if(state == OUT_OF_SYNC) {
-		if(b == COMMAND_SYNC_START) {
-			state = SYNC_START;
-			send_byte(RESP_SYNC_START);
-		}
-	}
+void WaitForVSync(){
+  char X = (PINB & (1 << PB3));
+  while(X!=0){
+    X = (PINB & (1 << PB3));
+  }
+  while(X==0){
+    X = (PINB & (1 << PB3));
+  }
+  
+  send_byte(0x38);
 }
 
 // Main entry point.
 int main(void) {
-	// We also need to initialize the initial input reports.
-	memset(&defaultBuf, 0, sizeof(USB_JoystickReport_Input_t));
-	defaultBuf.LX  = STICK_CENTER;
-	defaultBuf.LY  = STICK_CENTER;
-	defaultBuf.RX  = STICK_CENTER;
-	defaultBuf.RY  = STICK_CENTER;
-	defaultBuf.HAT = HAT_CENTER;
-	memcpy(&buffer, &defaultBuf, sizeof(USB_JoystickReport_Input_t));
+    // We also need to initialize the initial input reports.
+    memset(&defaultBuf, 0, sizeof(USB_JoystickReport_Input_t));
+    defaultBuf.LX = STICK_CENTER;
+    defaultBuf.LY = STICK_CENTER;
+    defaultBuf.RX = STICK_CENTER;
+    defaultBuf.RY = STICK_CENTER;
+    defaultBuf.HAT = HAT_CENTER;
+    memcpy(&buffer, &defaultBuf, sizeof(USB_JoystickReport_Input_t));
 
-	memset(&usbInput, 0, sizeof(USB_Input_Packet_t));
+    memset(&usbInput, 0, sizeof(USB_Input_Packet_t));
 
-	// We'll start by performing hardware and peripheral setup.
-	SetupHardware();
-	// We'll then enable global interrupts for our use.
-	GlobalInterruptEnable();
-	// Once that's done, we'll enter an infinite loop.
-	for(;;) {
-		// We need to run our task to process and deliver data for our IN and OUT endpoints.
-		HID_Task();
-		// We also need to run the main USB management task.
-		USB_USBTask();
-	}
+    // We'll start by performing hardware and peripheral setup.
+    SetupHardware();
+    // We'll then enable global interrupts for our use.
+    GlobalInterruptEnable();
+    // Once that's done, we'll enter an infinite loop.
+    for (;;)
+    {
+        if(state == SYNCED){
+          WaitForVSync();
+        }
+        // We need to run our task to process and deliver data for our IN and OUT endpoints.
+        HID_Task();
+        // We also need to run the main USB management task.
+        USB_USBTask();
+    }
 }
 
 // Configures hardware and peripherals, such as the USB peripherals.
@@ -126,9 +153,11 @@ void SetupHardware(void) {
 	clock_prescale_set(clock_div_1);
 	// We can then initialize our hardware and peripherals, including the USB stack.
 	USART_Init(19200);
-
-	// The USB stack should be initialized last.
-	USB_Init();
+  // The USB stack should be initialized last.
+  USB_Init();
+    
+  //Init the VSYNC-Pin
+  DDRD &= ~(1 << PB3);
 }
 
 // Fired to indicate that the device is enumerating.

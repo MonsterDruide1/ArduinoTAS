@@ -76,7 +76,13 @@ typedef enum {
 #define STICK_CENTER 128
 #define STICK_MAX 255
 
-typedef enum { COMMAND_NOP = 0, COMMAND_SYNC_1 = 0x33, COMMAND_SYNC_2 = 0xCC, COMMAND_SYNC_START = 0xFF } Command_t;
+typedef enum {
+    COMMAND_NOP         = 0,
+    COMMAND_SYNC_1      = 0x33,
+    COMMAND_SYNC_2      = 0xCC,
+    COMMAND_SYNC_START  = 0xFF,
+    COMMAND_SYNC_DONE   = 0x77
+} Command_t;
 
 typedef enum {
 	RESP_USB_ACK     = 0x90,
