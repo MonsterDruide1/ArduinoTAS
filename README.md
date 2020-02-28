@@ -19,9 +19,14 @@ The original version of the code that this repo is based off of emulated the Pok
 
 #### How to use
 
-Besides the Arduino you also need an UART to USB-Bridge. [This one](https://www.amazon.de/USB-TTL-Konverter-Modul-mit-eingebautem-CP2102/dp/B00AFRXKFU/) from Amazon works for me.
+Besides the Arduino you also need an UART to USB-Bridge. [This one](https://www.amazon.de/USB-TTL-Konverter-Modul-mit-eingebautem-CP2102/dp/B00AFRXKFU/) from Amazon works for me. You also need an HDMI- to VGA-Adapter and either a HDMI or VGA splitter to still view the output of the Switch while running the task; If your capture card has an mirroring output that works too.
 
-You only need to connect TX to TX and RX to RX. Normally, you connect TX to RX, but we are using the ATmega16u2 in the Arduino, which inverses TX and RX.
+First, you need to connect TX to TX and RX to RX. Normally, you connect TX to RX, but we are using the ATmega16u2 in the Arduino, which inverses TX and RX.
+
+Next, you have to wire the arduino to the VGA-output of the Switch. You need to connect PIN14 of the VGA-Connector to PIN3 of the first ICSP header (MISO-Pin, look at image below).
+
+[![VGA-Adapter -> Connect PIN14](http://distrikt12.bplaced.net/web_old/VGA.jpg)](http://distrikt12.bplaced.net/web_old/VGA.jpg)
+[![Arduino connections](http://distrikt12.bplaced.net/web_old/Arduino.jpg)](http://distrikt12.bplaced.net/web_old/Arduino.jpg)
 
 After connecting the bridge to your PC, you need to check, which COM-Port it uses. Go into your "Device Manager" and check below "COM & LPT" for "Silicon Labs CP210x USB to UART Bridge (COM?)" (for my device, linked above). That ? after COM is your needed COM port. Insert it into the "port" on the top of "clientTAS.py".
 
