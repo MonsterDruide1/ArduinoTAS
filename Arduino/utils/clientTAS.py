@@ -516,7 +516,7 @@ def main():
             if(key == keyboard.KeyCode(char='l')):
                 command += BTN_A
                 keys+=";KEY_A"
-            if(key == Key.space):
+            if(key == keyboard.KeyCode(char='k'):
                 command += BTN_B
                 keys+=";KEY_B"
             if(key == keyboard.KeyCode(char='j')):
