@@ -36,11 +36,12 @@ This repository has been tested using an Arduino Uno.
 
 #### Compiling this Project
 
-First of all, you need a Linux VM (for example in [VirtualBox](https://www.virtualbox.org/), tested with Ubuntu). Here you need to install the [ArduinoIDE](https://www.arduino.cc/download_handler.php?f=/arduino-1.8.10-linux64.tar.xz). Next, you edit the makefile and insert your installation dir at ARDUINO_PATH (keep the additions at the end to let it point to the correct dir).
+First of all, you need a Linux machine or a Linux VM (for example in [VirtualBox](https://www.virtualbox.org/), tested with Ubuntu). Here you need to install the [ArduinoIDE](https://www.arduino.cc/download_handler.php?f=/arduino-1.8.10-linux64.tar.xz). 
+Next, clone this repository and edit the Makefile at `./Arduino/Makefile` and insert your installation path at ARDUINO_PATH (keep the additions at the end to let it point to the correct dir).
 
-After every restart of the Linux VM you need to extend the $PATH-Variable by running the following command: `sudo export $PATH=(your ArduinoIDE-Installation-dir)/hardware/tools/avr/bin/:$PATH` (also look if it points to an existing directory).
+Either add `PATH=$PATH:(your ArduinoIDE-Installation-dir)/hardware/tools/avr/bin/` to your `~/.bashrc` or run `export PATH=(your ArduinoIDE-Installation-dir)/hardware/tools/avr/bin/:$PATH` every time you reboot.
 
-Now you should be ready to rock. Open a terminal window in the `Arduino`-subdirectory, type `make`, and hit enter to compile. If all goes well, the printout in the terminal will let you know it finished the build! Follow the directions on flashing `Joystick.hex` onto your Arduino, which can be found below.
+Now you should be ready to rock. Open a terminal window in the `Arduino` subdirectory, type `make`, and hit enter to compile. If all goes well, the printout in the terminal will let you know it finished the build! Follow the directions on flashing `Joystick.hex` onto your Arduino, which can be found below.
 
 #### Flashing it onto the Arduino Uno
 
