@@ -25,8 +25,8 @@ First, you need to connect TX to TX and RX to RX. Normally, you connect TX to RX
 
 Next, you have to wire the arduino to the VGA-output of the Switch. You need to connect PIN14 of the VGA-Connector to PIN3 of the first ICSP header (MISO-Pin, look at image below).
 
-[![VGA-Adapter -> Connect PIN14](http://distrikt12.bplaced.net/web_old/VGA.jpg)](http://distrikt12.bplaced.net/web_old/VGA.jpg)
-[![Arduino connections](http://distrikt12.bplaced.net/web_old/Arduino.jpg)](http://distrikt12.bplaced.net/web_old/Arduino.jpg)
+[![VGA-Adapter -> Connect PIN14](docs/images/VGA.jpg)](docs/images/VGA.jpg)
+[![Arduino connections](docs/images/Arduino.jpg)](docs/images/Arduino.jpg)
 
 After connecting the bridge to your PC, you need to check, which COM-Port it uses. Go into your "Device Manager" and check below "COM & LPT" for "Silicon Labs CP210x USB to UART Bridge (COM?)" (for my device, linked above). That ? after COM is your needed COM port. Insert it into the "port" on the top of "clientTAS.py".
 
